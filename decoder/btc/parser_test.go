@@ -3,7 +3,7 @@ package btc
 import (
 	"testing"
 
-	"metaid-script-decoder/decoder"
+	"github.com/metaid-developers/metaid-script-decoder/decoder"
 )
 
 func TestNewBTCParser(t *testing.T) {

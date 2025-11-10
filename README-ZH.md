@@ -25,7 +25,7 @@ import (
     "log"
 
     "github.com/btcsuite/btcd/chaincfg"
-    "metaid-script-decoder/decoder/btc"
+    "github.com/metaid-developers/metaid-script-decoder/decoder/btc"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 
 ```go
 import (
-    "metaid-script-decoder/decoder/mvc"
+    "github.com/metaid-developers/metaid-script-decoder/decoder/mvc"
 )
 
 // 创建MVC解析器
@@ -68,8 +68,8 @@ pins, err := parser.ParseTransaction(txBytes, &chaincfg.MainNetParams)
 
 ```go
 import (
-    "metaid-script-decoder/decoder"
-    "metaid-script-decoder/decoder/btc"
+    "github.com/metaid-developers/metaid-script-decoder/decoder"
+    "github.com/metaid-developers/metaid-script-decoder/decoder/btc"
 )
 
 // 创建自定义配置
@@ -158,7 +158,7 @@ type ChainParser interface {
 ```go
 package mychain
 
-import "metaid-script-decoder/decoder"
+import "github.com/metaid-developers/metaid-script-decoder/decoder"
 
 type MyChainParser struct {
     config *decoder.ParserConfig

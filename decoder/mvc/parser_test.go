@@ -3,7 +3,7 @@ package mvc
 import (
 	"testing"
 
-	"metaid-script-decoder/decoder"
+	"github.com/metaid-developers/metaid-script-decoder/decoder"
 )
 
 func TestNewMVCParser(t *testing.T) {

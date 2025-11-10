@@ -7,9 +7,9 @@ import (
 	"log"
 	"strings"
 
-	"metaid-script-decoder/decoder"
-	"metaid-script-decoder/decoder/btc"
-	"metaid-script-decoder/decoder/mvc"
+	"github.com/metaid-developers/metaid-script-decoder/decoder"
+	"github.com/metaid-developers/metaid-script-decoder/decoder/btc"
+	"github.com/metaid-developers/metaid-script-decoder/decoder/mvc"
 
 	"github.com/btcsuite/btcd/chaincfg"
 )

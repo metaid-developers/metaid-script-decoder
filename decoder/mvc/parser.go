@@ -14,8 +14,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 
-	"metaid-script-decoder/decoder"
-	"metaid-script-decoder/decoder/common"
+	"github.com/metaid-developers/metaid-script-decoder/decoder"
+	"github.com/metaid-developers/metaid-script-decoder/decoder/common"
 )
 
 // MVCParser is the MVC chain parser

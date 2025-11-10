@@ -1,4 +1,4 @@
-module metaid-script-decoder
+module github.com/metaid-developers/metaid-script-decoder
 
 go 1.21
 

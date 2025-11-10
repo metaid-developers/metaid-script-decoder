@@ -10,8 +10,8 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 
-	"metaid-script-decoder/decoder"
-	"metaid-script-decoder/decoder/common"
+	"github.com/metaid-developers/metaid-script-decoder/decoder"
+	"github.com/metaid-developers/metaid-script-decoder/decoder/common"
 )
 
 // BTCParser is the BTC chain parser
