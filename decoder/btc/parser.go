@@ -141,18 +141,25 @@ func (p *BTCParser) parseWitnessPins(msgTx *wire.MsgTx, params *chaincfg.Params)
 		}
 
 		// Get PIN owner address
-		address, vout := p.getWitnessOwner(msgTx, i, params)
+		address, vout, outValue, locationIdx := p.getWitnessOwner(msgTx, i, params)
 		if address == "" {
 			address = "unknown"
 			vout = 0
 		}
 
+		pin.Id = fmt.Sprintf("%si%d", txHash, vout)
 		pin.TxID = txHash
 		pin.Vout = uint32(vout)
 		pin.OwnerAddress = address
 		pin.OwnerMetaId = common.CalculateMetaId(address)
 		pin.ChainName = "btc"
 		pin.InscriptionTxIndex = i
+
+		//// PIN location
+		pin.Location = fmt.Sprintf("%s:%d:%d", txHash, vout, locationIdx)
+		pin.Offset = uint64(vout)
+		pin.Output = fmt.Sprintf("%s:%d", txHash, vout)
+		pin.OutputValue = outValue
 
 		pins = append(pins, pin)
 	}
@@ -276,7 +283,7 @@ func (p *BTCParser) getOpReturnOwner(tx *wire.MsgTx, params *chaincfg.Params) (a
 }
 
 // getWitnessOwner gets the owner of a Witness format PIN
-func (p *BTCParser) getWitnessOwner(tx *wire.MsgTx, inIdx int, params *chaincfg.Params) (address string, vout int) {
+func (p *BTCParser) getWitnessOwner(tx *wire.MsgTx, inIdx int, params *chaincfg.Params) (address string, vout int, outValue int64, locationIdx int64) {
 	// Simple case: single input or single output
 	if len(tx.TxIn) == 1 || len(tx.TxOut) == 1 || inIdx == 0 {
 		if len(tx.TxOut) > 0 {
@@ -284,6 +291,8 @@ func (p *BTCParser) getWitnessOwner(tx *wire.MsgTx, inIdx int, params *chaincfg.
 			if len(addresses) > 0 {
 				address = addresses[0].String()
 				vout = 0
+				outValue = tx.TxOut[0].Value
+				locationIdx = 0
 			}
 		}
 		return

@@ -20,11 +20,13 @@ type Pin struct {
 	Timestamp   int64  `json:"timestamp"`
 
 	// Basic fields
-	Operation  string `json:"operation"`  // Operation type: create, modify, revoke, etc.
-	Path       string `json:"path"`       // PIN path
-	ParentPath string `json:"parentPath"` // Parent path
-	Encryption string `json:"encryption"` // Encryption method
-	Version    string `json:"version"`    // Version
+	Operation    string `json:"operation"`    // Operation type: create, modify, revoke, etc.
+	OriginalPath string `json:"originalPath"` // Original path
+	Path         string `json:"path"`         // PIN path
+	ParentPath   string `json:"parentPath"`   // Parent path
+	Host         string `json:"host"`         // Host
+	Encryption   string `json:"encryption"`   // Encryption method
+	Version      string `json:"version"`      // Version
 
 	// Content fields
 	ContentType   string `json:"contentType"`   // Content type
@@ -70,6 +72,6 @@ type ParserConfig struct {
 func DefaultConfig() *ParserConfig {
 	return &ParserConfig{
 		ProtocolID:      "6d6574616964", // metaid
-		CreatorResolver: nil,             // Don't resolve creator by default
+		CreatorResolver: nil,            // Don't resolve creator by default
 	}
 }

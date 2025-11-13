@@ -10,9 +10,9 @@ import (
 	"math"
 	"strings"
 
+	"github.com/bitcoinsv/bsvd/chaincfg"
+	"github.com/bitcoinsv/bsvd/txscript"
 	"github.com/bitcoinsv/bsvd/wire"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
 
 	"github.com/metaid-developers/metaid-script-decoder/decoder"
 	"github.com/metaid-developers/metaid-script-decoder/decoder/common"
@@ -62,7 +62,6 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate tx hash: %w", err)
 	}
-
 	// MVC mainly uses OP_RETURN format
 	for i, out := range msgTx.TxOut {
 		class, _, _, _ := txscript.ExtractPkScriptAddrs(out.PkScript, params)
@@ -73,19 +72,28 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 			}
 
 			// Get PIN owner address
-			address, vout := p.getOwner(msgTx, params)
+			address, vout, outValue, locationIdx := p.getOwner(msgTx, params)
 			if address == "" {
 				continue
 			}
 
+			pin.Id = fmt.Sprintf("%si%d", txHash, vout)
 			pin.TxID = txHash
-			pin.Vout = uint32(vout)
+			pin.Vout = uint32(i)
 			pin.OwnerAddress = address
 			pin.OwnerMetaId = common.CalculateMetaId(address)
 			pin.ChainName = "mvc"
 			pin.InscriptionTxIndex = i
 
+			//// PIN location
+			pin.Location = fmt.Sprintf("%s:%d:%d", txHash, vout, locationIdx)
+			pin.Offset = uint64(vout)
+			pin.Output = fmt.Sprintf("%s:%d", txHash, vout)
+			pin.OutputValue = outValue
+			// pin.Timestamp = msgTx.Timestamp
+
 			pins = append(pins, pin)
+
 			break // Usually only one OP_RETURN
 		}
 	}
@@ -95,32 +103,41 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 
 // parseOpReturnScript parses OP_RETURN scripts
 func (p *MVCParser) parseOpReturnScript(pkScript []byte) *decoder.Pin {
-	tokenizer := txscript.MakeScriptTokenizer(0, pkScript)
-	for tokenizer.Next() {
-		if tokenizer.Opcode() == txscript.OP_RETURN {
-			if !tokenizer.Next() || hex.EncodeToString(tokenizer.Data()) != p.config.ProtocolID {
-				return nil
-			}
-			return p.parseOnePin(&tokenizer)
-		}
-	}
-	return nil
-}
-
-// parseOnePin parses a single PIN data
-func (p *MVCParser) parseOnePin(tokenizer *txscript.ScriptTokenizer) *decoder.Pin {
-	var infoList [][]byte
-
-	// Collect all data
-	for tokenizer.Next() {
-		infoList = append(infoList, tokenizer.Data())
-	}
-
-	// Check for errors
-	if err := tokenizer.Err(); err != nil {
+	if len(pkScript) < 1 {
 		return nil
 	}
 
+	// Handle two formats:
+	// 1. OP_RETURN ... (direct)
+	// 2. OP_0 OP_RETURN ... (with OP_0 prefix)
+	offset := 0
+
+	// Check if starts with OP_0
+	if pkScript[0] == txscript.OP_0 || pkScript[0] == txscript.OP_FALSE {
+		offset = 1
+	}
+
+	// Check for OP_RETURN
+	if offset >= len(pkScript) || pkScript[offset] != txscript.OP_RETURN {
+		return nil
+	}
+
+	// Extract data pushes from the script after OP_RETURN
+	dataPushes, err := extractDataPushes(pkScript[offset+1:])
+	if err != nil || len(dataPushes) == 0 {
+		return nil
+	}
+
+	// Check protocol ID
+	if hex.EncodeToString(dataPushes[0]) != p.config.ProtocolID {
+		return nil
+	}
+
+	return p.parseOnePin(dataPushes[1:])
+}
+
+// parseOnePin parses a single PIN data
+func (p *MVCParser) parseOnePin(infoList [][]byte) *decoder.Pin {
 	if len(infoList) < 1 {
 		return nil
 	}
@@ -139,8 +156,25 @@ func (p *MVCParser) parseOnePin(tokenizer *txscript.ScriptTokenizer) *decoder.Pi
 	}
 
 	// Parse each field
-	pin.Path = common.NormalizePath(string(infoList[1]))
-	pin.ParentPath = common.GetParentPath(pin.Path)
+	pin.OriginalPath = string(infoList[1])
+
+	// Parse host and path from OriginalPath
+	// Format can be: "host:path" or just "path"
+	// For cases like "example.com:8080:/path", we need to find ":/" pattern
+	pathStr := pin.OriginalPath
+
+	// Look for ":/" pattern to identify the separator between host and path
+	colonSlashIndex := strings.Index(pathStr, ":/")
+	if colonSlashIndex > 0 {
+		// Found ":/", split into host and path
+		pin.Host = pathStr[:colonSlashIndex]
+		pin.Path = common.NormalizePath(pathStr[colonSlashIndex+1:]) // Skip the colon, keep the slash
+	} else {
+		// No ":/" pattern found, treat entire string as path
+		pin.Host = ""
+		pin.Path = common.NormalizePath(pathStr)
+	}
+	pin.ParentPath = pin.Path
 
 	encryption := "0"
 	if len(infoList) > 2 && infoList[2] != nil {
@@ -172,16 +206,18 @@ func (p *MVCParser) parseOnePin(tokenizer *txscript.ScriptTokenizer) *decoder.Pi
 }
 
 // getOwner gets the owner of the PIN
-func (p *MVCParser) getOwner(tx *wire.MsgTx, params *chaincfg.Params) (address string, vout int) {
+func (p *MVCParser) getOwner(tx *wire.MsgTx, params *chaincfg.Params) (address string, vout int, outValue int64, locationIdx int64) {
 	for i, out := range tx.TxOut {
 		class, addresses, _, _ := txscript.ExtractPkScriptAddrs(out.PkScript, params)
 		if class.String() != "nulldata" && class.String() != "nonstandard" && len(addresses) > 0 {
 			address = addresses[0].String()
 			vout = i
+			outValue = out.Value
+			locationIdx = 0
 			return
 		}
 	}
-	return "", 0
+	return "", 0, 0, 0
 }
 
 // calculateTxHash calculates the MVC transaction hash
@@ -420,6 +456,69 @@ func sha256Hash(message []byte) []byte {
 	hash := sha256.New()
 	hash.Write(message)
 	return hash.Sum(nil)
+}
+
+// extractDataPushes extracts data pushes from a script
+func extractDataPushes(script []byte) ([][]byte, error) {
+	var dataPushes [][]byte
+	offset := 0
+
+	for offset < len(script) {
+		if offset >= len(script) {
+			break
+		}
+
+		opcode := script[offset]
+		offset++
+
+		var data []byte
+		var dataLen int
+
+		// Handle different opcodes
+		if opcode <= txscript.OP_PUSHDATA4 {
+			if opcode < txscript.OP_PUSHDATA1 {
+				// Direct push (0-75 bytes)
+				dataLen = int(opcode)
+			} else if opcode == txscript.OP_PUSHDATA1 {
+				// Next byte is the length
+				if offset >= len(script) {
+					return nil, errors.New("script truncated")
+				}
+				dataLen = int(script[offset])
+				offset++
+			} else if opcode == txscript.OP_PUSHDATA2 {
+				// Next 2 bytes are the length (little-endian)
+				if offset+1 >= len(script) {
+					return nil, errors.New("script truncated")
+				}
+				dataLen = int(binary.LittleEndian.Uint16(script[offset : offset+2]))
+				offset += 2
+			} else if opcode == txscript.OP_PUSHDATA4 {
+				// Next 4 bytes are the length (little-endian)
+				if offset+3 >= len(script) {
+					return nil, errors.New("script truncated")
+				}
+				dataLen = int(binary.LittleEndian.Uint32(script[offset : offset+4]))
+				offset += 4
+			}
+
+			// Extract the data
+			if offset+dataLen > len(script) {
+				return nil, errors.New("script truncated")
+			}
+			data = make([]byte, dataLen)
+			copy(data, script[offset:offset+dataLen])
+			offset += dataLen
+
+			dataPushes = append(dataPushes, data)
+		} else {
+			// For other opcodes, we skip them or could handle specially
+			// For OP_RETURN parsing, we typically only care about data pushes
+			continue
+		}
+	}
+
+	return dataPushes, nil
 }
 
 // getTxNewRawByte gets new transaction bytes (for transactions with version >= 10)
