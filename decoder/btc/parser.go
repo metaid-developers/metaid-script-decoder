@@ -275,7 +275,7 @@ func (p *BTCParser) getOpReturnOwner(tx *wire.MsgTx, params *chaincfg.Params) (a
 		class, addresses, _, _ := txscript.ExtractPkScriptAddrs(out.PkScript, params)
 		if class.String() != "nonstandard" && len(addresses) > 0 {
 			vout = i
-			address = addresses[0].String()
+			address = addresses[0].EncodeAddress()
 			return
 		}
 	}
@@ -289,7 +289,7 @@ func (p *BTCParser) getWitnessOwner(tx *wire.MsgTx, inIdx int, params *chaincfg.
 		if len(tx.TxOut) > 0 {
 			_, addresses, _, _ := txscript.ExtractPkScriptAddrs(tx.TxOut[0].PkScript, params)
 			if len(addresses) > 0 {
-				address = addresses[0].String()
+				address = addresses[0].EncodeAddress()
 				vout = 0
 				outValue = tx.TxOut[0].Value
 				locationIdx = 0
@@ -304,7 +304,7 @@ func (p *BTCParser) getWitnessOwner(tx *wire.MsgTx, inIdx int, params *chaincfg.
 	if len(tx.TxOut) > 0 {
 		_, addresses, _, _ := txscript.ExtractPkScriptAddrs(tx.TxOut[0].PkScript, params)
 		if len(addresses) > 0 {
-			address = addresses[0].String()
+			address = addresses[0].EncodeAddress()
 			vout = 0
 		}
 	}

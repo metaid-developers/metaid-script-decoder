@@ -16,6 +16,9 @@ import (
 
 	"github.com/metaid-developers/metaid-script-decoder/decoder"
 	"github.com/metaid-developers/metaid-script-decoder/decoder/common"
+
+	chaincfg2 "github.com/btcsuite/btcd/chaincfg"
+	txscript2 "github.com/btcsuite/btcd/txscript"
 )
 
 // MVCParser is the MVC chain parser
@@ -208,12 +211,18 @@ func (p *MVCParser) parseOnePin(infoList [][]byte) *decoder.Pin {
 // getOwner gets the owner of the PIN
 func (p *MVCParser) getOwner(tx *wire.MsgTx, params *chaincfg.Params) (address string, vout int, outValue int64, locationIdx int64) {
 	for i, out := range tx.TxOut {
-		class, addresses, _, _ := txscript.ExtractPkScriptAddrs(out.PkScript, params)
+		params2 := &chaincfg2.MainNetParams
+		if params == &chaincfg.TestNet3Params {
+			params2 = &chaincfg2.TestNet3Params
+		}
+		class, addresses, _, _ := txscript2.ExtractPkScriptAddrs(out.PkScript, params2)
 		if class.String() != "nulldata" && class.String() != "nonstandard" && len(addresses) > 0 {
-			address = addresses[0].String()
+			address = addresses[0].EncodeAddress()
 			vout = i
 			outValue = out.Value
 			locationIdx = 0
+			fmt.Println("address", address)
+			fmt.Println("vout", vout)
 			return
 		}
 	}
@@ -552,4 +561,36 @@ func getTxNewRawByte(transaction *RawTransaction) []byte {
 	newRawTxByte = append(newRawTxByte, sha256Hash(newOutputsByte)...)
 
 	return newRawTxByte
+}
+
+func PkScriptToAddress(net *chaincfg.Params, pkScript string) (string, error) {
+	pkScriptByte, err := hex.DecodeString(pkScript)
+	if err != nil {
+		return "", err
+	}
+	_, addrs, _, err := txscript.ExtractPkScriptAddrs(pkScriptByte, net)
+	if err != nil {
+		return "", errors.New("Extract address from pkScript. ")
+	}
+	if len(addrs) == 0 {
+		return "", errors.New("Extract address from pkScript. ")
+	}
+	address := addrs[0].EncodeAddress()
+	return address, nil
+}
+
+func PkScriptToAddres2(net *chaincfg2.Params, pkScript string) (string, error) {
+	pkScriptByte, err := hex.DecodeString(pkScript)
+	if err != nil {
+		return "", err
+	}
+	_, addrs, _, err := txscript2.ExtractPkScriptAddrs(pkScriptByte, net)
+	if err != nil {
+		return "", errors.New("Extract address from pkScript. ")
+	}
+	if len(addrs) == 0 {
+		return "", errors.New("Extract address from pkScript. ")
+	}
+	address := addrs[0].EncodeAddress()
+	return address, nil
 }
