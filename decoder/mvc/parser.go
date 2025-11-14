@@ -65,6 +65,12 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate tx hash: %w", err)
 	}
+
+	creatorInputLocation := ""
+	for _, in := range msgTx.TxIn {
+		creatorInputLocation = fmt.Sprintf("%s:%d", in.PreviousOutPoint.Hash.String(), in.PreviousOutPoint.Index)
+	}
+
 	// MVC mainly uses OP_RETURN format
 	for i, out := range msgTx.TxOut {
 		class, _, _, _ := txscript.ExtractPkScriptAddrs(out.PkScript, params)
@@ -87,6 +93,7 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 			pin.OwnerMetaId = common.CalculateMetaId(address)
 			pin.ChainName = "mvc"
 			pin.InscriptionTxIndex = i
+			pin.CreatorInputLocation = creatorInputLocation
 
 			//// PIN location
 			pin.Location = fmt.Sprintf("%s:%d:%d", txHash, vout, locationIdx)
