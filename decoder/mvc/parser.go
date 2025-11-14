@@ -228,8 +228,8 @@ func (p *MVCParser) getOwner(tx *wire.MsgTx, params *chaincfg.Params) (address s
 			vout = i
 			outValue = out.Value
 			locationIdx = 0
-			fmt.Println("address", address)
-			fmt.Println("vout", vout)
+			// fmt.Println("address", address)
+			// fmt.Println("vout", vout)
 			return
 		}
 	}
