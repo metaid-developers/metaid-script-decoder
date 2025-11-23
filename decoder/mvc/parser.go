@@ -82,8 +82,10 @@ func (p *MVCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 
 			// Get PIN owner address
 			address, vout, outValue, locationIdx := p.getOwner(msgTx, params)
-			if address == "" {
-				continue
+			if address == "" && len(msgTx.TxOut) == 1 {
+				vout = 0
+				outValue = out.Value
+				locationIdx = 0
 			}
 
 			pin.Id = fmt.Sprintf("%si%d", txHash, vout)
