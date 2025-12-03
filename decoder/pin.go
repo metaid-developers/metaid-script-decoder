@@ -8,9 +8,10 @@ type Pin struct {
 	OwnerAddress string `json:"ownerAddress"` // Owner address
 	OwnerMetaId  string `json:"ownerMetaId"`  // Owner MetaID
 	// PIN creator
-	CreatorAddress       string `json:"creatorAddress"`       // Creator address
-	CreatorMetaId        string `json:"creatorMetaId"`        // Creator MetaID
-	CreatorInputLocation string `json:"creatorInputLocation"` // Creator input location txId:vin
+	CreatorAddress            string `json:"creatorAddress"`            // Creator address
+	CreatorMetaId             string `json:"creatorMetaId"`             // Creator MetaID
+	CreatorInputLocation      string `json:"creatorInputLocation"`      // Creator input location PreTxId:vout
+	CreatorInputTxVinLocation string `json:"creatorInputTxVinLocation"` // Creator input transaction vin location PreTxId:vin
 
 	// PIN location
 	Offset      uint64 `json:"offset"`

@@ -53,12 +53,12 @@ func (p *BTCParser) ParseTransaction(txBytes []byte, chainParams interface{}) ([
 
 	var pins []*decoder.Pin
 
-	// 1. First check for OP_RETURN format PINs
-	opReturnPins := p.parseOpReturnPins(msgTx, params)
-	if len(opReturnPins) > 0 {
-		pins = append(pins, opReturnPins...)
-		return pins, nil
-	}
+	// // 1. First check for OP_RETURN format PINs
+	// opReturnPins := p.parseOpReturnPins(msgTx, params)
+	// if len(opReturnPins) > 0 {
+	// 	pins = append(pins, opReturnPins...)
+	// 	return pins, nil
+	// }
 
 	// 2. Check for Witness format PINs
 	witnessPins := p.parseWitnessPins(msgTx, params)
@@ -154,6 +154,8 @@ func (p *BTCParser) parseWitnessPins(msgTx *wire.MsgTx, params *chaincfg.Params)
 		pin.OwnerMetaId = common.CalculateMetaId(address)
 		pin.ChainName = "btc"
 		pin.InscriptionTxIndex = i
+		// pin.CreatorInputLocation = creatorInputLocation
+		pin.CreatorInputTxVinLocation = fmt.Sprintf("%s:%d", txIn.PreviousOutPoint.Hash.String(), 0)
 
 		//// PIN location
 		pin.Location = fmt.Sprintf("%s:%d:%d", txHash, vout, locationIdx)
