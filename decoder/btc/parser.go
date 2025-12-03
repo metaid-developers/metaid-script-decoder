@@ -143,7 +143,7 @@ func (p *BTCParser) parseWitnessPins(msgTx *wire.MsgTx, params *chaincfg.Params)
 		// Get PIN owner address
 		address, vout, outValue, locationIdx := p.getWitnessOwner(msgTx, i, params)
 		if address == "" {
-			address = "unknown"
+			address = ""
 			vout = 0
 		}
 
