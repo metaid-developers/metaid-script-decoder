@@ -9,6 +9,7 @@ import (
 
 	"github.com/metaid-developers/metaid-script-decoder/decoder"
 	"github.com/metaid-developers/metaid-script-decoder/decoder/btc"
+	"github.com/metaid-developers/metaid-script-decoder/decoder/doge"
 	"github.com/metaid-developers/metaid-script-decoder/decoder/mvc"
 
 	"github.com/btcsuite/btcd/chaincfg"
@@ -29,8 +30,14 @@ func main() {
 
 	fmt.Println("\n" + strings.Repeat("=", 50) + "\n")
 
-	// Example 3: Use custom protocol ID
-	fmt.Println("Example 3: Use Custom Protocol ID")
+	// Example 3: Parse DOGE transaction
+	fmt.Println("Example 3: Parse DOGE Transaction")
+	parseDOGETransaction()
+
+	fmt.Println("\n" + strings.Repeat("=", 50) + "\n")
+
+	// Example 4: Use custom protocol ID
+	fmt.Println("Example 4: Use Custom Protocol ID")
 	parseWithCustomProtocolID()
 }
 
@@ -79,6 +86,35 @@ func parseMVCTransaction() {
 
 	// Parse transaction
 	pins, err := parser.ParseTransaction(txBytes, &chaincfg.MainNetParams)
+	if err != nil {
+		log.Printf("Failed to parse transaction: %v", err)
+		return
+	}
+
+	// Output results
+	fmt.Printf("Found %d PIN(s):\n", len(pins))
+	for i, pin := range pins {
+		printPin(i+1, pin)
+	}
+}
+
+// parseDOGETransaction example of parsing DOGE transactions
+func parseDOGETransaction() {
+	// This is a sample transaction hex string
+	// In actual use, you need to get real transaction data from the blockchain node
+	txHex := "your_doge_transaction_hex_here"
+
+	txBytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		log.Printf("Failed to decode transaction: %v", err)
+		return
+	}
+
+	// Create DOGE parser
+	parser := doge.NewDOGEParser(nil)
+
+	// Parse transaction (DOGE uses DogeMainNetParams by default if nil)
+	pins, err := parser.ParseTransaction(txBytes, nil)
 	if err != nil {
 		log.Printf("Failed to parse transaction: %v", err)
 		return
